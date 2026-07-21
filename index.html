@@ -1,0 +1,1197 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<base target="_top">
+<meta charset="UTF-8">
+<title>Controle de Estoque - Penta Engenharia</title>
+<style>
+:root{
+--azul:#2f8fc4; --azul-esc:#1c5f85; --azul-claro:#eaf4fb;
+--preto:#222; --cinza:#6b7280; --cinza-bg:#f4f6f8; --borda:#e2e6ea;
+--verde:#2e7d32; --verde-bg:#e8f5e9;
+--vermelho:#c62828; --vermelho-bg:#fdecea;
+--laranja:#ef6c00; --laranja-bg:#fff3e0;
+--branco:#fff;
+--raio:14px;
+}
+*{box-sizing:border-box;}
+body{margin:0;font-family:'Segoe UI',Roboto,Arial,sans-serif;background:var(--cinza-bg);color:var(--preto);}
+.hidden{display:none !important;}
+button{cursor:pointer;font-family:inherit;}
+input, select, textarea{font-family:inherit;font-size:16px;padding:12px;border:1px solid var(--borda);border-radius:10px;width:100%;background:#fff;}
+input:focus, select:focus, textarea:focus{outline:2px solid var(--azul);}
+
+/* ---------- LOGIN ---------- */
+#login-screen{min-height:100vh;display:flex;align-items:center;justify-content:center;background:linear-gradient(160deg,var(--azul-esc),var(--azul));padding:20px;}
+.login-card{background:#fff;border-radius:var(--raio);padding:36px 28px;max-width:360px;width:100%;text-align:center;box-shadow:0 20px 50px rgba(0,0,0,.25);}
+.login-logo{width:120px;margin-bottom:10px;}
+.login-card h1{font-size:20px;margin:6px 0 0;color:var(--preto);}
+.login-card .subtitle{color:var(--cinza);margin:2px 0 20px;font-size:13px;}
+.login-card input{margin-bottom:12px;}
+#btn-login{width:100%;background:var(--azul);color:#fff;border:none;padding:13px;border-radius:10px;font-size:16px;font-weight:600;}
+#btn-login:active{background:var(--azul-esc);}
+.erro{color:var(--vermelho);font-size:13px;margin-top:10px;min-height:16px;}
+
+/* ---------- APP SHELL ---------- */
+header{display:flex;align-items:center;gap:12px;background:#fff;padding:10px 16px;border-bottom:1px solid var(--borda);position:sticky;top:0;z-index:20;}
+header .header-logo{width:42px;height:auto;}
+.header-title{flex:1;display:flex;flex-direction:column;line-height:1.2;}
+.header-title strong{font-size:15px;}
+.header-title span{font-size:11px;color:var(--cinza);}
+.header-user{display:flex;align-items:center;gap:8px;}
+#user-badge{font-size:12px;background:var(--azul-claro);color:var(--azul-esc);padding:5px 10px;border-radius:20px;font-weight:600;}
+#btn-logout{background:none;border:1px solid var(--borda);border-radius:8px;padding:7px 10px;font-size:12px;color:var(--cinza);}
+
+.view{padding:16px;max-width:640px;margin:0 auto;padding-bottom:60px;}
+.view:not(.active){display:none;}
+.view-header{display:flex;align-items:center;gap:10px;margin-bottom:14px;}
+.view-header h2{font-size:18px;margin:0;}
+.btn-voltar{background:#fff;border:1px solid var(--borda);border-radius:10px;padding:8px 12px;font-size:13px;color:var(--azul-esc);font-weight:600;}
+
+/* ---------- HUB ---------- */
+.hub-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:8px;}
+.hub-tile{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;background:#fff;border:1px solid var(--borda);border-radius:var(--raio);padding:26px 10px;font-size:14px;font-weight:700;color:var(--preto);box-shadow:0 2px 6px rgba(0,0,0,.04);position:relative;}
+.hub-tile:active{transform:scale(.97);}
+.hub-tile .tile-icon{font-size:32px;}
+.tile-entrada{border-color:var(--verde);}
+.tile-saida{border-color:var(--vermelho);}
+.tile-estoque{border-color:var(--azul);}
+.tile-cadastro{border-color:var(--laranja);}
+.tile-historico{grid-column:span 2;flex-direction:row;padding:14px;font-size:13px;color:var(--cinza);}
+.tile-historico .tile-icon{font-size:20px;}
+.admin-only{display:none;}
+.is-admin .admin-only{display:flex;}
+.tile-badge{position:absolute;top:8px;right:8px;background:var(--vermelho);color:#fff;font-size:11px;font-weight:700;border-radius:20px;padding:2px 8px;}
+.alert-ferramentas{margin-top:16px;background:var(--vermelho-bg);border:1px solid var(--vermelho);color:var(--vermelho);border-radius:12px;padding:14px;font-size:13px;font-weight:600;cursor:pointer;}
+
+/* ---------- STEPPER ---------- */
+.stepper{display:flex;justify-content:space-between;margin-bottom:18px;position:relative;}
+.stepper::before{content:'';position:absolute;top:16px;left:0;right:0;height:2px;background:var(--borda);z-index:0;}
+.step-dot{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;position:relative;z-index:1;}
+.step-dot .circ{width:32px;height:32px;border-radius:50%;background:#fff;border:2px solid var(--borda);display:flex;align-items:center;justify-content:center;font-size:15px;color:var(--cinza);}
+.step-dot .lbl{font-size:9.5px;color:var(--cinza);text-align:center;max-width:60px;}
+.step-dot.done .circ{background:var(--verde);border-color:var(--verde);color:#fff;}
+.step-dot.active .circ{background:var(--azul);border-color:var(--azul);color:#fff;}
+.step-dot.active .lbl{color:var(--azul-esc);font-weight:700;}
+
+.wizard-card{background:#fff;border-radius:var(--raio);padding:20px;box-shadow:0 2px 8px rgba(0,0,0,.05);}
+.wizard-card h3{margin-top:0;font-size:16px;}
+.wizard-hint{font-size:12.5px;color:var(--cinza);margin-bottom:14px;}
+.wizard-actions{display:flex;gap:10px;margin-top:18px;}
+.btn-primary{flex:1;background:var(--azul);color:#fff;border:none;padding:14px;border-radius:10px;font-size:15px;font-weight:700;}
+.btn-secondary{background:#fff;border:1px solid var(--borda);padding:14px;border-radius:10px;font-size:15px;color:var(--cinza);}
+.btn-primary:disabled{background:#b9d4e5;}
+.qtd-row{display:flex;align-items:center;gap:10px;}
+.qtd-row button{width:48px;height:48px;font-size:22px;border-radius:10px;border:1px solid var(--borda);background:#fff;font-weight:700;color:var(--azul-esc);}
+.qtd-row input{text-align:center;font-size:22px;font-weight:700;}
+.field-group{margin-bottom:12px;}
+.field-group label{display:block;font-size:12.5px;color:var(--cinza);margin-bottom:5px;font-weight:600;}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.combo-wrap{position:relative;}
+.combo-list{position:absolute;top:100%;left:0;right:0;background:#fff;border:1px solid var(--borda);border-radius:10px;max-height:220px;overflow:auto;z-index:30;box-shadow:0 8px 20px rgba(0,0,0,.12);margin-top:4px;}
+.combo-item{padding:11px 12px;font-size:14px;border-bottom:1px solid #f1f1f1;}
+.combo-item:hover, .combo-item.hl{background:var(--azul-claro);}
+.combo-item small{display:block;color:var(--cinza);font-size:11px;}
+.selected-chip{background:var(--azul-claro);color:var(--azul-esc);padding:10px 12px;border-radius:10px;font-size:14px;font-weight:600;display:flex;justify-content:space-between;align-items:center;}
+.selected-chip button{background:none;border:none;color:var(--azul-esc);font-size:13px;text-decoration:underline;}
+.ferramenta-alerta{background:var(--laranja-bg);border:1px solid var(--laranja);color:#8a4a00;border-radius:10px;padding:12px;font-size:13px;margin-bottom:14px;font-weight:600;}
+.saldo-hint{font-size:12.5px;color:var(--cinza);margin-top:6px;}
+.toggle-row{display:flex;gap:10px;}
+.toggle-btn{flex:1;padding:16px;border-radius:10px;border:2px solid var(--borda);background:#fff;font-weight:700;font-size:14px;color:var(--cinza);}
+.toggle-btn.sim.active{border-color:var(--verde);background:var(--verde-bg);color:var(--verde);}
+.toggle-btn.nao.active{border-color:var(--vermelho);background:var(--vermelho-bg);color:var(--vermelho);}
+.resumo-item{display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid #f1f1f1;font-size:13.5px;}
+.resumo-item span:first-child{color:var(--cinza);}
+.sucesso-box{text-align:center;padding:20px 0;}
+.sucesso-box .icone{font-size:52px;}
+.sucesso-box h3{margin:8px 0 4px;}
+.sucesso-box p{color:var(--cinza);font-size:13.5px;}
+
+/* ---------- LISTS / CARDS ---------- */
+.card-item{background:#fff;border-radius:12px;padding:13px 14px;margin-bottom:10px;box-shadow:0 1px 4px rgba(0,0,0,.04);border:1px solid var(--borda);}
+.card-item .top-row{display:flex;justify-content:space-between;align-items:center;gap:8px;}
+.card-item .nome{font-weight:700;font-size:14px;}
+.card-item .sub{font-size:12px;color:var(--cinza);margin-top:2px;}
+.badge{font-size:10.5px;font-weight:700;padding:3px 9px;border-radius:20px;white-space:nowrap;}
+.badge-epi{background:#e3f2fd;color:#1565c0;}
+.badge-insumo{background:#f3e5f5;color:#6a1b9a;}
+.badge-ferramenta{background:var(--laranja-bg);color:var(--laranja);}
+.badge-geral{background:#eceff1;color:#455a64;}
+.badge-entrada{background:var(--verde-bg);color:var(--verde);}
+.badge-saida{background:var(--vermelho-bg);color:var(--vermelho);}
+.saldo-num{font-size:17px;font-weight:800;}
+.saldo-baixo{color:var(--vermelho);}
+.pendente-card{background:var(--vermelho-bg);border:1px solid var(--vermelho);border-radius:12px;padding:13px 14px;margin-bottom:10px;}
+.pendente-card .nome{color:var(--vermelho);font-weight:700;}
+.pendente-card .sub{color:#8a2020;}
+.btn-devolver{margin-top:8px;background:var(--vermelho);color:#fff;border:none;padding:9px 14px;border-radius:8px;font-size:12.5px;font-weight:700;}
+.btn-editar{background:none;border:1px solid var(--borda);border-radius:8px;padding:6px 11px;font-size:12px;color:var(--azul-esc);}
+.edit-box{margin-top:10px;border-top:1px dashed var(--borda);padding-top:10px;}
+.edit-box .row2{margin-bottom:8px;}
+.edit-actions{display:flex;gap:8px;margin-top:6px;}
+.edit-actions button{flex:1;padding:9px;border-radius:8px;font-size:12.5px;font-weight:700;}
+.btn-salvar{background:var(--azul);color:#fff;border:none;}
+.btn-cancelar{background:#fff;border:1px solid var(--borda);color:var(--cinza);}
+
+.cadastro-form{background:#fff;border-radius:var(--raio);padding:16px;margin-bottom:16px;box-shadow:0 1px 4px rgba(0,0,0,.04);}
+.cadastro-form > *{margin-bottom:10px;}
+.cadastro-form button{width:100%;background:var(--azul);color:#fff;border:none;padding:12px;border-radius:10px;font-weight:700;}
+.checkbox-label{display:flex;align-items:center;gap:8px;font-size:13.5px;color:var(--cinza);}
+.checkbox-label input{width:auto;}
+#cp-busca, #estoque-busca{margin-bottom:12px;}
+
+.filtros-relatorio{display:flex;gap:8px;flex-wrap:wrap;align-items:end;margin-bottom:16px;background:#fff;padding:12px;border-radius:12px;}
+.filtros-relatorio label{font-size:11.5px;color:var(--cinza);display:flex;flex-direction:column;gap:3px;flex:1;min-width:120px;}
+.filtros-relatorio button{background:var(--azul);color:#fff;border:none;border-radius:8px;padding:10px 14px;font-size:12.5px;font-weight:700;height:42px;}
+#rel-limpar{background:#fff;border:1px solid var(--borda);color:var(--cinza);}
+.rel-secao{background:#fff;border-radius:12px;padding:16px;margin-bottom:14px;box-shadow:0 1px 4px rgba(0,0,0,.04);}
+.rel-secao h4{margin:0 0 12px;font-size:14px;}
+.rel-totais{display:flex;gap:10px;margin-bottom:14px;}
+.rel-total-box{flex:1;text-align:center;border-radius:12px;padding:14px;}
+.rel-total-box.entrada{background:var(--verde-bg);color:var(--verde);}
+.rel-total-box.saida{background:var(--vermelho-bg);color:var(--vermelho);}
+.rel-total-box .num{font-size:24px;font-weight:800;}
+.rel-total-box .lbl{font-size:11px;}
+.bar-row{margin-bottom:10px;}
+.bar-row .bar-label{display:flex;justify-content:space-between;font-size:12.5px;margin-bottom:4px;}
+.bar-track{background:#eef1f4;border-radius:6px;height:10px;overflow:hidden;}
+.bar-fill{height:100%;border-radius:6px;}
+.bar-fill.saida{background:var(--vermelho);}
+.bar-fill.entrada{background:var(--verde);}
+.func-card{border-bottom:1px solid #f1f1f1;padding:10px 0;}
+.func-card .fnome{font-weight:700;font-size:13.5px;}
+.func-card .fdest{font-size:11.5px;color:var(--cinza);margin-top:3px;}
+
+/* ---------- MODAL ---------- */
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:flex-end;justify-content:center;z-index:100;}
+.modal-card{background:#fff;border-radius:18px 18px 0 0;padding:20px;width:100%;max-width:500px;max-height:88vh;overflow:auto;}
+.modal-card h3{margin-top:0;}
+
+@media(min-width:520px){
+.modal{align-items:center;}
+.modal-card{border-radius:16px;}
+}
+</style>
+</head>
+<body>
+
+<!-- ===================== LOGIN ===================== -->
+<div id="login-screen">
+<div class="login-card">
+<img class="login-logo" src="" alt="Penta Engenharia">
+<h1>Controle de Estoque</h1>
+<p class="subtitle">Almoxarifado — Penta Engenharia</p>
+<input id="login-usuario" placeholder="Usuário" autocomplete="username">
+<input id="login-senha" type="password" placeholder="Senha" autocomplete="current-password">
+<button id="btn-login">Entrar</button>
+<div class="erro" id="login-erro"></div>
+</div>
+</div>
+
+<!-- ===================== APP ===================== -->
+<div id="app" class="hidden">
+<header>
+<img class="header-logo" src="" alt="logo">
+<div class="header-title">
+<strong>Controle de Estoque</strong>
+<span>Almoxarifado Penta Engenharia</span>
+</div>
+<div class="header-user">
+<span id="user-badge"></span>
+<button id="btn-logout">Sair</button>
+</div>
+</header>
+
+<!-- HUB -->
+<section id="view-hub" class="view active">
+<div class="hub-grid">
+<button class="hub-tile tile-entrada" data-view="entrada"><span class="tile-icon">📥</span><span>Entrada</span></button>
+<button class="hub-tile tile-saida" data-view="saida"><span class="tile-icon">📤</span><span>Saída</span></button>
+<button class="hub-tile tile-estoque" data-view="estoque"><span class="tile-icon">📊</span><span>Estoque</span><span class="tile-badge hidden" id="badge-ferramentas"></span></button>
+<button class="hub-tile tile-cadastro" data-view="cadastro-produtos"><span class="tile-icon">📦</span><span>Cadastro de<br>Produtos</span></button>
+<button class="hub-tile tile-relatorios admin-only" data-view="relatorios"><span class="tile-icon">📈</span><span>Relatórios</span></button>
+<button class="hub-tile tile-usuarios admin-only" data-view="cadastro-usuarios"><span class="tile-icon">👥</span><span>Usuários</span></button>
+<button class="hub-tile tile-historico" data-view="historico"><span class="tile-icon">🕒</span><span>Ver histórico de movimentações</span></button>
+</div>
+<div id="hub-alert-ferramentas" class="alert-ferramentas hidden"></div>
+</section>
+
+<!-- ENTRADA -->
+<section id="view-entrada" class="view">
+<div class="view-header"><button class="btn-voltar" data-back>← Voltar</button><h2>Nova Entrada</h2></div>
+<div class="stepper" id="entrada-stepper"></div>
+<div class="wizard-card" id="entrada-steps"></div>
+</section>
+
+<!-- SAIDA -->
+<section id="view-saida" class="view">
+<div class="view-header"><button class="btn-voltar" data-back>← Voltar</button><h2>Nova Saída</h2></div>
+<div class="stepper" id="saida-stepper"></div>
+<div class="wizard-card" id="saida-steps"></div>
+</section>
+
+<!-- ESTOQUE -->
+<section id="view-estoque" class="view">
+<div class="view-header"><button class="btn-voltar" data-back>← Voltar</button><h2>Estoque Atual</h2></div>
+<div id="estoque-ferramentas-pendentes"></div>
+<input id="estoque-busca" placeholder="🔎 Buscar produto...">
+<div id="estoque-lista"></div>
+</section>
+
+<!-- HISTORICO -->
+<section id="view-historico" class="view">
+<div class="view-header"><button class="btn-voltar" data-back>← Voltar</button><h2>Histórico</h2></div>
+<div id="historico-lista"></div>
+</section>
+
+<!-- CADASTRO PRODUTOS -->
+<section id="view-cadastro-produtos" class="view">
+<div class="view-header"><button class="btn-voltar" data-back>← Voltar</button><h2>Cadastro de Produtos</h2></div>
+<div class="cadastro-form">
+<select id="cp-linha">
+<option value="EPI">EPI</option>
+<option value="INSUMO">INSUMO</option>
+<option value="FERRAMENTA">FERRAMENTA</option>
+<option value="GERAL">GERAL</option>
+</select>
+<input id="cp-nome" placeholder="Nome do produto">
+<button id="cp-add">+ Adicionar Produto</button>
+</div>
+<input id="cp-busca" placeholder="🔎 Buscar produto cadastrado...">
+<div id="cp-lista"></div>
+</section>
+
+<!-- CADASTRO USUARIOS -->
+<section id="view-cadastro-usuarios" class="view">
+<div class="view-header"><button class="btn-voltar" data-back>← Voltar</button><h2>Usuários do Sistema</h2></div>
+<div class="cadastro-form">
+<input id="cu-usuario" placeholder="Usuário">
+<input id="cu-senha" placeholder="Senha">
+<label class="checkbox-label"><input type="checkbox" id="cu-admin"> É administrador</label>
+<button id="cu-add">+ Adicionar Usuário</button>
+</div>
+<div id="cu-lista"></div>
+</section>
+
+<!-- RELATORIOS -->
+<section id="view-relatorios" class="view">
+<div class="view-header"><button class="btn-voltar" data-back>← Voltar</button><h2>Relatórios</h2></div>
+<div class="filtros-relatorio">
+<label>De<input type="date" id="rel-inicio"></label>
+<label>Até<input type="date" id="rel-fim"></label>
+<button id="rel-filtrar">Filtrar</button>
+<button id="rel-limpar">Tudo</button>
+</div>
+<div id="relatorio-conteudo"></div>
+</section>
+
+<!-- MODAL DEVOLUCAO -->
+<div id="modal-devolucao" class="modal hidden">
+<div class="modal-card">
+<h3>🔧 Devolução de Ferramenta</h3>
+<div id="devolucao-info"></div>
+<div class="stepper" id="devolucao-stepper"></div>
+<div id="devolucao-steps"></div>
+</div>
+</div>
+
+</div>
+
+<script>
+/* ======================================================================
+ESTADO GLOBAL
+====================================================================== */
+let STATE = { usuario:null, admin:false, produtos:[], enderecos:[], funcionarios:[] };
+
+const API_URL = 'https://script.google.com/macros/s/AKfycbz0wxBWonedLBCX_f5EbjYB8Tn8ht_H0VTHo_UQhqzk5n5hrYSf0xXvb_GX6iLWO55sKg/exec';
+
+function callServer(fnName, ...args){
+return fetch(API_URL, {
+method: 'POST',
+headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+body: JSON.stringify({ fn: fnName, args: args })
+})
+.then(r => r.json())
+.then(res => {
+if(!res.ok) throw new Error(res.error || 'Erro desconhecido no servidor.');
+return res.data;
+});
+}
+
+(async function initLogo(){
+try{
+const logo = await callServer('getLogo');
+document.querySelectorAll('.login-logo, .header-logo').forEach(img => { img.src = 'data:image/jpeg;base64,' + logo; });
+}catch(e){ console.error('Não foi possível carregar o logo:', e); }
+})();
+
+/* ======================================================================
+LOGIN
+====================================================================== */
+document.getElementById('btn-login').addEventListener('click', fazerLogin);
+document.getElementById('login-senha').addEventListener('keydown', e => { if(e.key==='Enter') fazerLogin(); });
+document.getElementById('login-usuario').addEventListener('keydown', e => { if(e.key==='Enter') fazerLogin(); });
+
+async function fazerLogin(){
+const usuario = document.getElementById('login-usuario').value.trim();
+const senha = document.getElementById('login-senha').value.trim();
+const erroEl = document.getElementById('login-erro');
+erroEl.textContent = '';
+if(!usuario || !senha){ erroEl.textContent = 'Informe usuário e senha.'; return; }
+const btn = document.getElementById('btn-login');
+btn.disabled = true; btn.textContent = 'Entrando...';
+try{
+const res = await callServer('login', usuario, senha);
+STATE.usuario = res.usuario;
+STATE.admin = res.admin;
+document.getElementById('login-screen').classList.add('hidden');
+document.getElementById('app').classList.remove('hidden');
+document.getElementById('app').classList.toggle('is-admin', STATE.admin);
+document.getElementById('user-badge').textContent = res.usuario + (res.admin ? ' • ADMIN' : '');
+await carregarBootstrap();
+showView('hub');
+atualizarAlertaFerramentas();
+}catch(err){
+erroEl.textContent = String(err.message || err);
+}finally{
+btn.disabled = false; btn.textContent = 'Entrar';
+}
+}
+
+document.getElementById('btn-logout').addEventListener('click', () => {
+STATE = { usuario:null, admin:false, produtos:[], enderecos:[], funcionarios:[] };
+document.getElementById('app').classList.add('hidden');
+document.getElementById('login-screen').classList.remove('hidden');
+document.getElementById('login-usuario').value = '';
+document.getElementById('login-senha').value = '';
+});
+
+async function carregarBootstrap(){
+const boot = await callServer('getBootstrap');
+STATE.produtos = boot.produtos || [];
+STATE.enderecos = boot.enderecos || [];
+STATE.funcionarios = boot.funcionarios || [];
+}
+
+/* ======================================================================
+NAVEGAÇÃO
+====================================================================== */
+function showView(name){
+document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+document.getElementById('view-' + name).classList.add('active');
+window.scrollTo(0,0);
+if(name === 'hub') atualizarAlertaFerramentas();
+if(name === 'entrada') iniciarWizardEntrada();
+if(name === 'saida') iniciarWizardSaida();
+if(name === 'estoque') carregarEstoque();
+if(name === 'historico') carregarHistorico();
+if(name === 'cadastro-produtos') carregarCadastroProdutos();
+if(name === 'cadastro-usuarios') carregarCadastroUsuarios();
+if(name === 'relatorios') carregarRelatorios();
+}
+
+document.querySelectorAll('[data-view]').forEach(btn => {
+btn.addEventListener('click', () => showView(btn.getAttribute('data-view')));
+});
+document.querySelectorAll('[data-back]').forEach(btn => {
+btn.addEventListener('click', () => showView('hub'));
+});
+
+async function atualizarAlertaFerramentas(){
+try{
+const pendentes = await callServer('getFerramentasPendentes');
+const badge = document.getElementById('badge-ferramentas');
+const alertBox = document.getElementById('hub-alert-ferramentas');
+if(pendentes.length > 0){
+badge.textContent = pendentes.length;
+badge.classList.remove('hidden');
+alertBox.innerHTML = `⚠️ ${pendentes.length} ferramenta(s) aguardando devolução. Toque para ver na tela Estoque.`;
+alertBox.classList.remove('hidden');
+alertBox.onclick = () => showView('estoque');
+}else{
+badge.classList.add('hidden');
+alertBox.classList.add('hidden');
+}
+}catch(e){ /* silencioso */ }
+}
+
+function escapeHtml(str){
+return String(str == null ? '' : str).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+function fmtData(d){
+const dt = new Date(d);
+if(isNaN(dt.getTime())) return '';
+return dt.toLocaleDateString('pt-BR') + ' ' + dt.toLocaleTimeString('pt-BR', {hour:'2-digit',minute:'2-digit'});
+}
+function badgeLinha(linha){
+const l = String(linha||'').toUpperCase();
+const cls = l === 'EPI' ? 'badge-epi' : l === 'INSUMO' ? 'badge-insumo' : l === 'FERRAMENTA' ? 'badge-ferramenta' : 'badge-geral';
+return `<span class="badge ${cls}">${escapeHtml(linha||'GERAL')}</span>`;
+}
+
+/* ======================================================================
+COMBO DE PRODUTO (busca)
+====================================================================== */
+function makeProdutoCombo(inputEl, listEl, onSelect){
+function render(filtro){
+const f = (filtro||'').toLowerCase();
+const itens = STATE.produtos.filter(p => !f || String(p.PRODUTO).toLowerCase().includes(f)).slice(0,40);
+if(itens.length === 0){ listEl.innerHTML = '<div class="combo-item">Nenhum produto encontrado</div>'; }
+else{
+listEl.innerHTML = itens.map(p => `<div class="combo-item" data-id="${p.ID}"><b>${escapeHtml(p.PRODUTO)}</b><small>${escapeHtml(p.LINHA||'')}</small></div>`).join('');
+}
+listEl.classList.remove('hidden');
+}
+inputEl.addEventListener('focus', () => render(inputEl.value));
+inputEl.addEventListener('input', () => render(inputEl.value));
+listEl.addEventListener('click', (e) => {
+const item = e.target.closest('.combo-item');
+if(!item || !item.dataset.id) return;
+const produto = STATE.produtos.find(p => String(p.ID) === String(item.dataset.id));
+if(produto){ onSelect(produto); listEl.classList.add('hidden'); }
+});
+document.addEventListener('click', (e) => {
+if(!listEl.contains(e.target) && e.target !== inputEl) listEl.classList.add('hidden');
+});
+}
+
+/* ======================================================================
+WIZARD ENGINE (genérico)
+====================================================================== */
+function criarWizard(stepperId, cardId, steps){
+const w = {
+stepIndex: 0,
+data: {},
+steps: steps,
+stepperEl: document.getElementById(stepperId),
+cardEl: document.getElementById(cardId),
+renderStepper(){
+this.stepperEl.innerHTML = this.steps.map((s,i) => {
+const cls = i < this.stepIndex ? 'done' : i === this.stepIndex ? 'active' : '';
+return `<div class="step-dot ${cls}"><div class="circ">${i < this.stepIndex ? '✓' : s.icon}</div><div class="lbl">${s.label}</div></div>`;
+}).join('');
+},
+renderStep(){
+this.renderStepper();
+const step = this.steps[this.stepIndex];
+this.cardEl.innerHTML = step.render(this.data);
+step.wire && step.wire(this.data, this.cardEl, this);
+const btnNext = this.cardEl.querySelector('[data-next]');
+const btnBack = this.cardEl.querySelector('[data-prev]');
+if(btnNext) btnNext.addEventListener('click', () => this.goNext());
+if(btnBack) btnBack.addEventListener('click', () => this.goBack());
+this.atualizarBotao();
+},
+atualizarBotao(){
+const step = this.steps[this.stepIndex];
+const btnNext = this.cardEl.querySelector('[data-next]');
+if(btnNext && step.validate){
+btnNext.disabled = !step.validate(this.data);
+}
+},
+goNext(){
+const step = this.steps[this.stepIndex];
+if(step.validate && !step.validate(this.data)) return;
+if(this.stepIndex === this.steps.length - 1){
+step.finish && step.finish(this.data, this);
+return;
+}
+this.stepIndex++;
+this.renderStep();
+},
+goBack(){
+if(this.stepIndex === 0){ showView('hub'); return; }
+this.stepIndex--;
+this.renderStep();
+},
+reset(){
+this.stepIndex = 0;
+this.data = {};
+this.renderStep();
+}
+};
+return w;
+}
+
+/* ======================================================================
+WIZARD: NOVA ENTRADA
+====================================================================== */
+let wizardEntrada = null;
+function iniciarWizardEntrada(){
+const steps = [
+{ key:'produto', icon:'📦', label:'Produto',
+validate: d => !!d.produtoId,
+render: d => `
+<h3>Passo 1 de 5 — Qual produto?</h3>
+<p class="wizard-hint">Toque no campo e digite para buscar o produto.</p>
+${d.produtoId ? `<div class="selected-chip">${escapeHtml(d.produtoNome)} <button data-trocar>Trocar</button></div>` : `
+<div class="combo-wrap">
+<input id="ent-produto-input" placeholder="Buscar produto...">
+<div class="combo-list hidden" id="ent-produto-list"></div>
+</div>`}
+<div class="wizard-actions">
+<button class="btn-primary" data-next>Próximo →</button>
+</div>`,
+wire: (d, el) => {
+const trocar = el.querySelector('[data-trocar]');
+if(trocar) trocar.addEventListener('click', () => { d.produtoId = null; d.produtoNome = null; wizardEntrada.renderStep(); });
+const input = el.querySelector('#ent-produto-input');
+const list = el.querySelector('#ent-produto-list');
+if(input && list){
+makeProdutoCombo(input, list, (produto) => {
+d.produtoId = produto.ID; d.produtoNome = produto.PRODUTO;
+wizardEntrada.renderStep();
+});
+}
+}
+},
+{ key:'quantidade', icon:'🔢', label:'Quantidade',
+validate: d => Number(d.quantidade) > 0,
+render: d => `
+<h3>Passo 2 de 5 — Quantidade</h3>
+<p class="wizard-hint">Quantas unidades de <b>${escapeHtml(d.produtoNome)}</b> estão entrando?</p>
+<div class="qtd-row">
+<button data-menos type="button">−</button>
+<input id="ent-qtd" type="number" min="1" value="${d.quantidade || 1}">
+<button data-mais type="button">+</button>
+</div>
+<div class="wizard-actions">
+<button class="btn-secondary" data-prev>← Voltar</button>
+<button class="btn-primary" data-next>Próximo →</button>
+</div>`,
+wire: (d, el, w) => {
+const input = el.querySelector('#ent-qtd');
+d.quantidade = input.value;
+input.addEventListener('input', () => { d.quantidade = input.value; w.atualizarBotao(); });
+el.querySelector('[data-menos]').addEventListener('click', () => { input.value = Math.max(1, (Number(input.value)||1) - 1); d.quantidade = input.value; w.atualizarBotao(); });
+el.querySelector('[data-mais]').addEventListener('click', () => { input.value = (Number(input.value)||0) + 1; d.quantidade = input.value; w.atualizarBotao(); });
+}
+},
+{ key:'local', icon:'📍', label:'Local',
+validate: () => true,
+render: d => `
+<h3>Passo 3 de 5 — Em qual prateleira?</h3>
+<p class="wizard-hint">Informe apenas o número da prateleira onde o produto foi guardado.</p>
+<div class="field-group"><label>Prateleira</label><input id="ent-prateleira" value="${escapeHtml(d.prateleira||'')}" placeholder="Ex: 12"></div>
+<div class="wizard-actions">
+<button class="btn-secondary" data-prev>← Voltar</button>
+<button class="btn-primary" data-next>Próximo →</button>
+</div>`,
+wire: (d, el) => {
+const inp = el.querySelector('#ent-prateleira');
+inp.addEventListener('input', () => d.prateleira = inp.value);
+}
+},
+{ key:'obs', icon:'📝', label:'Observação',
+validate: d => !d.temNf || !!(d.nfNumero && d.nfNumero.trim()),
+render: d => `
+<h3>Passo 4 de 5 — Nota fiscal e observação</h3>
+<label class="checkbox-label"><input type="checkbox" id="ent-tem-nf" ${d.temNf ? 'checked' : ''}> Possui nota fiscal (NF)?</label>
+<div class="field-group ${d.temNf ? '' : 'hidden'}" id="ent-nf-wrap" style="margin-top:10px;">
+<label>Número da NF</label>
+<input id="ent-nf-numero" value="${escapeHtml(d.nfNumero||'')}" placeholder="Ex: 12345">
+</div>
+<div class="field-group" style="margin-top:12px;">
+<label>Observação (opcional)</label>
+<textarea id="ent-obs" rows="3" placeholder="Alguma informação extra sobre esta entrada...">${escapeHtml(d.observacao||'')}</textarea>
+</div>
+<div class="wizard-actions">
+<button class="btn-secondary" data-prev>← Voltar</button>
+<button class="btn-primary" data-next>Próximo →</button>
+</div>`,
+wire: (d, el, w) => {
+const chk = el.querySelector('#ent-tem-nf');
+const nfWrap = el.querySelector('#ent-nf-wrap');
+chk.addEventListener('change', () => {
+d.temNf = chk.checked;
+nfWrap.classList.toggle('hidden', !chk.checked);
+w.atualizarBotao();
+});
+const nfInp = el.querySelector('#ent-nf-numero');
+nfInp.addEventListener('input', () => { d.nfNumero = nfInp.value; w.atualizarBotao(); });
+const obsInp = el.querySelector('#ent-obs');
+obsInp.addEventListener('input', () => d.observacao = obsInp.value);
+}
+},
+{ key:'confirmar', icon:'✅', label:'Confirmar',
+validate: () => true,
+render: d => `
+<h3>Passo 5 de 5 — Confirmar</h3>
+<div class="resumo-item"><span>Produto</span><span>${escapeHtml(d.produtoNome)}</span></div>
+<div class="resumo-item"><span>Quantidade</span><span>${escapeHtml(d.quantidade)}</span></div>
+<div class="resumo-item"><span>Prateleira</span><span>${escapeHtml(d.prateleira || '—')}</span></div>
+<div class="resumo-item"><span>Nota fiscal</span><span>${d.temNf ? escapeHtml(d.nfNumero) : 'Sem NF'}</span></div>
+<div class="resumo-item"><span>Observação</span><span>${escapeHtml(d.observacao || '—')}</span></div>
+<div class="wizard-actions">
+<button class="btn-secondary" data-prev>← Voltar</button>
+<button class="btn-primary" data-next id="ent-confirmar-btn">✔ Confirmar Entrada</button>
+</div>
+<div class="erro" id="ent-erro"></div>`,
+finish: async (d, w) => {
+const btn = document.getElementById('ent-confirmar-btn');
+const erroEl = document.getElementById('ent-erro');
+btn.disabled = true; btn.textContent = 'Salvando...';
+try{
+await callServer('addEntrada', { produtoId:d.produtoId, produtoNome:d.produtoNome, quantidade:d.quantidade, prateleira:d.prateleira, temNf:!!d.temNf, nfNumero:d.nfNumero, observacao:d.observacao, usuario:STATE.usuario });
+w.cardEl.innerHTML = `
+<div class="sucesso-box">
+<div class="icone">✅</div>
+<h3>Entrada registrada!</h3>
+<p>${escapeHtml(d.quantidade)}x ${escapeHtml(d.produtoNome)} adicionado ao estoque.</p>
+<div class="wizard-actions">
+<button class="btn-secondary" id="ent-nova">Nova entrada</button>
+<button class="btn-primary" id="ent-fim">Voltar ao início</button>
+</div>
+</div>`;
+w.stepperEl.innerHTML = '';
+document.getElementById('ent-nova').addEventListener('click', () => w.reset());
+document.getElementById('ent-fim').addEventListener('click', () => showView('hub'));
+}catch(err){
+erroEl.textContent = String(err.message || err);
+btn.disabled = false; btn.textContent = '✔ Confirmar Entrada';
+}
+}
+}
+];
+wizardEntrada = criarWizard('entrada-stepper', 'entrada-steps', steps);
+wizardEntrada.reset();
+}
+
+/* ======================================================================
+WIZARD: NOVA SAÍDA
+====================================================================== */
+let wizardSaida = null;
+function iniciarWizardSaida(){
+const steps = [
+{ key:'funcionario', icon:'🧑', label:'Quem leva',
+validate: d => !!(d.funcionario && d.funcionario.trim()),
+render: d => `
+<h3>Passo 1 de 4 — Quem está levando?</h3>
+<p class="wizard-hint">Selecione o técnico responsável pela retirada (precisa estar cadastrado).</p>
+<div class="field-group">
+<label>Funcionário</label>
+<select id="sai-func">
+<option value="">Selecione...</option>
+${STATE.funcionarios.map(f => `<option value="${escapeHtml(f.NOME)}" ${d.funcionario === f.NOME ? 'selected' : ''}>${escapeHtml(f.NOME)}</option>`).join('')}
+</select>
+</div>
+${STATE.funcionarios.length === 0 ? `<p class="wizard-hint" style="color:var(--vermelho);">Nenhum funcionário cadastrado. Cadastre um funcionário antes de continuar.</p>` : ''}
+<div class="wizard-actions">
+<button class="btn-primary" data-next>Próximo →</button>
+</div>`,
+wire: (d, el, w) => {
+const sel = el.querySelector('#sai-func');
+sel.addEventListener('change', () => { d.funcionario = sel.value; w.atualizarBotao(); });
+}
+},
+{ key:'itens', icon:'📦', label:'Produtos',
+validate: d => Array.isArray(d.itens) && d.itens.length > 0,
+render: d => {
+d.itens = d.itens || [];
+const listaHtml = d.itens.length ? d.itens.map((it, idx) => `
+<div class="card-item">
+<div class="top-row">
+<div>
+<div class="nome">${escapeHtml(it.produtoNome)}</div>
+<div class="sub">Quantidade: ${escapeHtml(it.quantidade)}${it.ehFerramenta ? ' • <b>FERRAMENTA</b>' : ''}</div>
+</div>
+<button class="btn-editar" data-remover="${idx}">Remover</button>
+</div>
+</div>`).join('') : `<p class="wizard-hint">Nenhum produto adicionado ainda.</p>`;
+return `
+<h3>Passo 2 de 4 — Quais produtos?</h3>
+<p class="wizard-hint">Adicione um ou mais produtos para <b>${escapeHtml(d.funcionario)}</b>. Você pode registrar vários itens nesta mesma saída.</p>
+${listaHtml}
+<div style="margin-top:14px;border-top:1px dashed var(--borda);padding-top:14px;">
+${d.itemAtualId ? `<div class="selected-chip">${escapeHtml(d.itemAtualNome)} <button data-trocar-item>Trocar</button></div>` : `
+<div class="combo-wrap">
+<input id="sai-produto-input" placeholder="Buscar produto para adicionar...">
+<div class="combo-list hidden" id="sai-produto-list"></div>
+</div>`}
+${d.itemAtualId ? `
+<div class="qtd-row" style="margin-top:10px;">
+<button data-menos type="button">−</button>
+<input id="sai-item-qtd" type="number" min="1" value="${d.itemAtualQtd || 1}">
+<button data-mais type="button">+</button>
+</div>
+<div class="saldo-hint" id="sai-saldo-hint"></div>
+${String(d.itemAtualLinha||'').toUpperCase() === 'FERRAMENTA' ? `<div class="ferramenta-alerta" style="margin-top:10px;">⚠️ Esta é uma <b>FERRAMENTA</b>. Ficará marcada como "aguardando devolução" até ser testada e devolvida.</div>` : ''}
+<button type="button" class="btn-primary" id="sai-add-item-btn" style="margin-top:10px;">+ Adicionar à saída</button>
+` : ''}
+</div>
+<div class="erro" id="sai-item-erro"></div>
+<div class="wizard-actions">
+<button class="btn-secondary" data-prev>← Voltar</button>
+<button class="btn-primary" data-next>Próximo →</button>
+</div>`;
+},
+wire: (d, el, w) => {
+el.querySelectorAll('[data-remover]').forEach(btn => {
+btn.addEventListener('click', () => {
+d.itens.splice(Number(btn.dataset.remover), 1);
+w.renderStep();
+});
+});
+const trocar = el.querySelector('[data-trocar-item]');
+if(trocar) trocar.addEventListener('click', () => {
+d.itemAtualId = null; d.itemAtualNome = null; d.itemAtualLinha = null; d.itemAtualQtd = null;
+w.renderStep();
+});
+const input = el.querySelector('#sai-produto-input');
+const list = el.querySelector('#sai-produto-list');
+if(input && list){
+makeProdutoCombo(input, list, (produto) => {
+if(d.itens.some(it => String(it.produtoId) === String(produto.ID))){
+document.getElementById('sai-item-erro').textContent = 'Este produto já foi adicionado. Remova-o da lista antes de adicionar de novo.';
+return;
+}
+d.itemAtualId = produto.ID; d.itemAtualNome = produto.PRODUTO; d.itemAtualLinha = produto.LINHA; d.itemAtualQtd = 1;
+w.renderStep();
+});
+}
+const qtdInp = el.querySelector('#sai-item-qtd');
+if(qtdInp){
+d.itemAtualQtd = qtdInp.value;
+qtdInp.addEventListener('input', () => d.itemAtualQtd = qtdInp.value);
+el.querySelector('[data-menos]').addEventListener('click', () => { qtdInp.value = Math.max(1, (Number(qtdInp.value)||1) - 1); d.itemAtualQtd = qtdInp.value; });
+el.querySelector('[data-mais]').addEventListener('click', () => { qtdInp.value = (Number(qtdInp.value)||0) + 1; d.itemAtualQtd = qtdInp.value; });
+callServer('getEstoque').then(lista => {
+const item = lista.find(p => String(p.id) === String(d.itemAtualId));
+const hint = document.getElementById('sai-saldo-hint');
+if(hint && item) hint.textContent = 'Saldo atual em estoque: ' + item.saldo + ' un.';
+});
+}
+const addBtn = el.querySelector('#sai-add-item-btn');
+if(addBtn){
+addBtn.addEventListener('click', () => {
+const qtd = Number(d.itemAtualQtd);
+if(!qtd || qtd <= 0){ document.getElementById('sai-item-erro').textContent = 'Informe uma quantidade válida.'; return; }
+d.itens.push({
+produtoId: d.itemAtualId,
+produtoNome: d.itemAtualNome,
+quantidade: qtd,
+ehFerramenta: String(d.itemAtualLinha||'').toUpperCase() === 'FERRAMENTA'
+});
+d.itemAtualId = null; d.itemAtualNome = null; d.itemAtualLinha = null; d.itemAtualQtd = null;
+w.renderStep();
+});
+}
+}
+},
+{ key:'obs', icon:'📝', label:'Observação',
+validate: () => true,
+render: d => `
+<h3>Passo 3 de 4 — Observação</h3>
+<p class="wizard-hint">Opcional. Ex: nome da obra/destino, motivo da retirada...</p>
+<textarea id="sai-obs" rows="3" placeholder="Ex: usado na obra Y...">${escapeHtml(d.observacao||'')}</textarea>
+<div class="wizard-actions">
+<button class="btn-secondary" data-prev>← Voltar</button>
+<button class="btn-primary" data-next>Próximo →</button>
+</div>`,
+wire: (d, el) => {
+const inp = el.querySelector('#sai-obs');
+inp.addEventListener('input', () => d.observacao = inp.value);
+}
+},
+{ key:'confirmar', icon:'✅', label:'Confirmar',
+validate: () => true,
+render: d => `
+<h3>Passo 4 de 4 — Confirmar</h3>
+<div class="resumo-item"><span>Funcionário</span><span>${escapeHtml(d.funcionario)}</span></div>
+${d.itens.map(it => `<div class="resumo-item"><span>${escapeHtml(it.produtoNome)}</span><span>${escapeHtml(it.quantidade)}${it.ehFerramenta ? ' 🔧' : ''}</span></div>`).join('')}
+<div class="resumo-item"><span>Observação</span><span>${escapeHtml(d.observacao || '—')}</span></div>
+<div class="wizard-actions">
+<button class="btn-secondary" data-prev>← Voltar</button>
+<button class="btn-primary" data-next id="sai-confirmar-btn">✔ Confirmar Saída</button>
+</div>
+<div class="erro" id="sai-erro"></div>`,
+finish: async (d, w) => {
+const btn = document.getElementById('sai-confirmar-btn');
+const erroEl = document.getElementById('sai-erro');
+btn.disabled = true; btn.textContent = 'Salvando...';
+try{
+const res = await callServer('addSaida', { funcionario:d.funcionario, itens:d.itens.map(it => ({ produtoId:it.produtoId, produtoNome:it.produtoNome, quantidade:it.quantidade })), observacao:d.observacao, usuario:STATE.usuario });
+w.cardEl.innerHTML = `
+<div class="sucesso-box">
+<div class="icone">✅</div>
+<h3>Saída registrada!</h3>
+<p>${d.itens.length} produto(s) entregue(s) a ${escapeHtml(d.funcionario)}.</p>
+${res.anyFerramenta ? `<div class="ferramenta-alerta">🔧 Uma ou mais ferramentas foram marcadas como <b>aguardando devolução</b>. Você poderá registrar a devolução na tela Estoque.</div>` : ''}
+<div class="wizard-actions">
+<button class="btn-secondary" id="sai-nova">Nova saída</button>
+<button class="btn-primary" id="sai-fim">Voltar ao início</button>
+</div>
+</div>`;
+w.stepperEl.innerHTML = '';
+document.getElementById('sai-nova').addEventListener('click', () => w.reset());
+document.getElementById('sai-fim').addEventListener('click', () => showView('hub'));
+}catch(err){
+erroEl.textContent = String(err.message || err);
+btn.disabled = false; btn.textContent = '✔ Confirmar Saída';
+}
+}
+}
+];
+wizardSaida = criarWizard('saida-stepper', 'saida-steps', steps);
+wizardSaida.reset();
+}
+
+/* ======================================================================
+ESTOQUE
+====================================================================== */
+let ESTOQUE_CACHE = [];
+async function carregarEstoque(){
+const [estoque, pendentes] = await Promise.all([callServer('getEstoque'), callServer('getFerramentasPendentes')]);
+ESTOQUE_CACHE = estoque;
+renderFerramentasPendentes(pendentes);
+renderEstoque(estoque, document.getElementById('estoque-busca').value);
+}
+document.getElementById('estoque-busca').addEventListener('input', (e) => renderEstoque(ESTOQUE_CACHE, e.target.value));
+
+function renderFerramentasPendentes(pendentes){
+const el = document.getElementById('estoque-ferramentas-pendentes');
+if(!pendentes.length){ el.innerHTML = ''; return; }
+el.innerHTML = `<h3 style="color:var(--vermelho);font-size:14px;">⚠️ Ferramentas aguardando devolução</h3>` +
+pendentes.map(p => `
+<div class="pendente-card">
+<div class="nome">${escapeHtml(p.produto)}</div>
+<div class="sub">Com: ${escapeHtml(p.funcionario)} • ${escapeHtml(p.local || 'sem local')}</div>
+<div class="sub">Saída em: ${fmtData(p.data)}</div>
+<button class="btn-devolver" data-saida="${p.saidaId}">Registrar devolução</button>
+</div>`).join('');
+el.querySelectorAll('[data-saida]').forEach(btn => {
+btn.addEventListener('click', () => abrirModalDevolucao(pendentes.find(p => String(p.saidaId) === btn.dataset.saida)));
+});
+}
+
+function renderEstoque(lista, filtro){
+const f = (filtro||'').toLowerCase();
+const filtrada = lista.filter(p => !f || String(p.produto).toLowerCase().includes(f));
+const el = document.getElementById('estoque-lista');
+if(!filtrada.length){ el.innerHTML = '<p style="color:var(--cinza);text-align:center;">Nenhum produto encontrado.</p>'; return; }
+el.innerHTML = filtrada.map(p => `
+<div class="card-item">
+<div class="top-row">
+<div>
+<div class="nome">${escapeHtml(p.produto)}</div>
+<div class="sub">${badgeLinha(p.linha)}${p.prateleira ? ' • Prateleira ' + escapeHtml(p.prateleira) : ''}</div>
+</div>
+<div class="saldo-num ${p.saldo <= 0 ? 'saldo-baixo' : ''}">${p.saldo}</div>
+</div>
+</div>`).join('');
+}
+
+/* ======================================================================
+DEVOLUÇÃO DE FERRAMENTA (modal)
+====================================================================== */
+let wizardDevolucao = null;
+function abrirModalDevolucao(pendente){
+document.getElementById('modal-devolucao').classList.remove('hidden');
+document.getElementById('devolucao-info').innerHTML = `
+<div class="resumo-item"><span>Ferramenta</span><span>${escapeHtml(pendente.produto)}</span></div>
+<div class="resumo-item"><span>Com</span><span>${escapeHtml(pendente.funcionario)}</span></div>
+<div class="resumo-item"><span>Local</span><span>${escapeHtml(pendente.local || '—')}</span></div>
+<div class="resumo-item"><span>Saída em</span><span>${fmtData(pendente.data)}</span></div>`;
+
+const steps = [
+{ key:'teste', icon:'🔍', label:'Teste',
+validate: d => d.testadoOk === true || d.testadoOk === false,
+render: d => `
+<h3>A ferramenta foi testada e está funcionando normalmente?</h3>
+<div class="toggle-row">
+<button type="button" class="toggle-btn sim ${d.testadoOk === true ? 'active' : ''}" data-sim>✅ Sim, funcionando</button>
+<button type="button" class="toggle-btn nao ${d.testadoOk === false ? 'active' : ''}" data-nao>⚠️ Não / problema</button>
+</div>
+<div class="wizard-actions">
+<button class="btn-secondary" id="dev-cancelar">Cancelar</button>
+<button class="btn-primary" data-next>Próximo →</button>
+</div>`,
+wire: (d, el, w) => {
+el.querySelector('[data-sim]').addEventListener('click', () => { d.testadoOk = true; w.renderStep(); });
+el.querySelector('[data-nao]').addEventListener('click', () => { d.testadoOk = false; w.renderStep(); });
+el.querySelector('#dev-cancelar').addEventListener('click', fecharModalDevolucao);
+}
+},
+{ key:'obs', icon:'📝', label:'Observação',
+validate: d => d.testadoOk === true || !!(d.observacao && d.observacao.trim()),
+render: d => `
+<h3>${d.testadoOk ? 'Observação (opcional)' : 'Descreva o problema encontrado'}</h3>
+<textarea id="dev-obs" rows="3" placeholder="${d.testadoOk ? 'Ex: sem observações' : 'Ex: não liga, cabo danificado...'}">${escapeHtml(d.observacao||'')}</textarea>
+<div class="wizard-actions">
+<button class="btn-secondary" data-prev>← Voltar</button>
+<button class="btn-primary" data-next id="dev-confirmar-btn">✔ Confirmar Devolução</button>
+</div>
+<div class="erro" id="dev-erro"></div>`,
+wire: (d, el, w) => {
+const inp = el.querySelector('#dev-obs');
+inp.addEventListener('input', () => { d.observacao = inp.value; w.atualizarBotao(); });
+},
+finish: async (d, w) => {
+const btn = document.getElementById('dev-confirmar-btn');
+const erroEl = document.getElementById('dev-erro');
+btn.disabled = true; btn.textContent = 'Salvando...';
+try{
+await callServer('registrarDevolucao', { saidaId: pendente.saidaId, testadoOk: d.testadoOk, observacao: d.observacao, usuario: STATE.usuario });
+document.getElementById('devolucao-steps').innerHTML = `
+<div class="sucesso-box">
+<div class="icone">✅</div>
+<h3>Devolução registrada!</h3>
+<p>${escapeHtml(pendente.produto)} voltou ao estoque.</p>
+<div class="wizard-actions"><button class="btn-primary" id="dev-fim">Fechar</button></div>
+</div>`;
+document.getElementById('devolucao-stepper').innerHTML = '';
+document.getElementById('dev-fim').addEventListener('click', () => { fecharModalDevolucao(); carregarEstoque(); atualizarAlertaFerramentas(); });
+}catch(err){
+erroEl.textContent = String(err.message || err);
+btn.disabled = false; btn.textContent = '✔ Confirmar Devolução';
+}
+}
+}
+];
+wizardDevolucao = criarWizard('devolucao-stepper', 'devolucao-steps', steps);
+wizardDevolucao.reset();
+}
+function fecharModalDevolucao(){
+document.getElementById('modal-devolucao').classList.add('hidden');
+}
+
+/* ======================================================================
+HISTÓRICO
+====================================================================== */
+async function carregarHistorico(){
+const el = document.getElementById('historico-lista');
+el.innerHTML = '<p style="color:var(--cinza);">Carregando...</p>';
+let lista;
+try{
+lista = await callServer('getHistorico', 100);
+}catch(err){
+try{
+await new Promise(r => setTimeout(r, 700));
+lista = await callServer('getHistorico', 100);
+}catch(err2){
+el.innerHTML = '<p style="color:var(--vermelho);text-align:center;">Erro ao carregar histórico: ' + escapeHtml(String(err2.message||err2)) + '</p>' +
+'<p style="text-align:center;"><button onclick="carregarHistorico()" style="margin-top:8px;padding:8px 16px;border-radius:8px;border:none;background:var(--vermelho);color:#fff;cursor:pointer;">Tentar novamente</button></p>';
+return;
+}
+}
+try{
+if(!lista.length){ el.innerHTML = '<p style="color:var(--cinza);text-align:center;">Nenhuma movimentação ainda.</p>'; return; }
+el.innerHTML = lista.map(m => `
+<div class="card-item">
+<div class="top-row">
+<div>
+<div class="nome">${escapeHtml(m.produto)}</div>
+<div class="sub">${fmtData(m.data)} • ${escapeHtml(m.pessoa||'')}</div>
+${m.detalhe ? `<div class="sub">${escapeHtml(m.detalhe)}</div>` : ''}
+${m.observacao ? `<div class="sub">📝 ${escapeHtml(m.observacao)}</div>` : ''}
+${m.ferramentaPendente ? `<div class="sub" style="color:var(--vermelho);font-weight:700;">⏳ aguardando devolução</div>` : ''}
+</div>
+<span class="badge ${m.tipo === 'ENTRADA' ? 'badge-entrada' : 'badge-saida'}">${m.tipo} ${m.quantidade}</span>
+</div>
+</div>`).join('');
+}catch(err){
+el.innerHTML = '<p style="color:var(--vermelho);text-align:center;">Erro ao exibir histórico: ' + escapeHtml(String(err.message||err)) + '</p>';
+}
+}
+
+/* ======================================================================
+CADASTRO DE PRODUTOS
+====================================================================== */
+async function carregarCadastroProdutos(){
+await carregarBootstrap();
+renderCadastroProdutos(STATE.produtos, document.getElementById('cp-busca').value);
+}
+document.getElementById('cp-busca').addEventListener('input', (e) => renderCadastroProdutos(STATE.produtos, e.target.value));
+document.getElementById('cp-add').addEventListener('click', async () => {
+const linha = document.getElementById('cp-linha').value;
+const nome = document.getElementById('cp-nome').value.trim();
+if(!nome){ alert('Informe o nome do produto.'); return; }
+try{
+await callServer('addProduto', STATE.usuario, linha, nome);
+document.getElementById('cp-nome').value = '';
+await carregarCadastroProdutos();
+}catch(err){ alert(String(err.message || err)); }
+});
+
+function renderCadastroProdutos(lista, filtro){
+const f = (filtro||'').toLowerCase();
+const filtrada = lista.filter(p => !f || String(p.PRODUTO).toLowerCase().includes(f));
+const el = document.getElementById('cp-lista');
+if(!filtrada.length){ el.innerHTML = '<p style="color:var(--cinza);text-align:center;">Nenhum produto encontrado.</p>'; return; }
+el.innerHTML = filtrada.map(p => `
+<div class="card-item" data-produto-card="${p.ID}">
+<div class="top-row">
+<div>
+<div class="nome">${escapeHtml(p.PRODUTO)}</div>
+<div class="sub">${badgeLinha(p.LINHA)}</div>
+</div>
+<button class="btn-editar" data-editar="${p.ID}">Editar</button>
+</div>
+<div class="edit-box hidden" id="edit-produto-${p.ID}"></div>
+</div>`).join('');
+el.querySelectorAll('[data-editar]').forEach(btn => {
+btn.addEventListener('click', () => abrirEdicaoProduto(lista.find(p => String(p.ID) === btn.dataset.editar)));
+});
+}
+
+function abrirEdicaoProduto(p){
+const box = document.getElementById('edit-produto-' + p.ID);
+box.classList.remove('hidden');
+box.innerHTML = `
+<div class="row2">
+<select id="edp-linha-${p.ID}">
+${['EPI','INSUMO','FERRAMENTA','GERAL'].map(l => `<option value="${l}" ${l===String(p.LINHA).toUpperCase() ? 'selected' : ''}>${l}</option>`).join('')}
+</select>
+<input id="edp-nome-${p.ID}" value="${escapeHtml(p.PRODUTO)}">
+</div>
+<div class="edit-actions">
+<button class="btn-cancelar" data-cancelar>Cancelar</button>
+<button class="btn-salvar" data-salvar>Salvar</button>
+</div>
+<div class="erro" id="edp-erro-${p.ID}"></div>`;
+box.querySelector('[data-cancelar]').addEventListener('click', () => { box.classList.add('hidden'); box.innerHTML = ''; });
+box.querySelector('[data-salvar]').addEventListener('click', async () => {
+const novaLinha = document.getElementById('edp-linha-' + p.ID).value;
+const novoNome = document.getElementById('edp-nome-' + p.ID).value.trim();
+if(!novoNome){ document.getElementById('edp-erro-' + p.ID).textContent = 'Informe o nome do produto.'; return; }
+try{
+await callServer('updateProduto', STATE.usuario, p.ID, novaLinha, novoNome);
+await carregarCadastroProdutos();
+}catch(err){ document.getElementById('edp-erro-' + p.ID).textContent = String(err.message || err); }
+});
+}
+
+/* ======================================================================
+CADASTRO DE USUÁRIOS (admin)
+====================================================================== */
+async function carregarCadastroUsuarios(){
+const el = document.getElementById('cu-lista');
+el.innerHTML = '<p style="color:var(--cinza);">Carregando...</p>';
+try{
+const usuarios = await callServer('getUsuarios', STATE.usuario);
+renderCadastroUsuarios(usuarios);
+}catch(err){ el.innerHTML = '<p style="color:var(--vermelho);">' + escapeHtml(err.message||err) + '</p>'; }
+}
+document.getElementById('cu-add').addEventListener('click', async () => {
+const usuario = document.getElementById('cu-usuario').value.trim();
+const senha = document.getElementById('cu-senha').value.trim();
+const admin = document.getElementById('cu-admin').checked;
+if(!usuario || !senha){ alert('Informe usuário e senha.'); return; }
+try{
+await callServer('addUsuario', STATE.usuario, usuario, senha, admin);
+document.getElementById('cu-usuario').value = '';
+document.getElementById('cu-senha').value = '';
+document.getElementById('cu-admin').checked = false;
+await carregarCadastroUsuarios();
+}catch(err){ alert(String(err.message || err)); }
+});
+
+function renderCadastroUsuarios(lista){
+const el = document.getElementById('cu-lista');
+if(!lista.length){ el.innerHTML = ''; return; }
+el.innerHTML = lista.map(u => `
+<div class="card-item">
+<div class="top-row">
+<div>
+<div class="nome">${escapeHtml(u.usuario)}</div>
+<div class="sub">${u.admin ? '<span class="badge badge-ferramenta">ADMIN</span>' : '<span class="badge badge-geral">Usuário</span>'}</div>
+</div>
+<button class="btn-editar" data-editar="${u.id}">Editar</button>
+</div>
+<div class="edit-box hidden" id="edit-usuario-${u.id}"></div>
+</div>`).join('');
+el.querySelectorAll('[data-editar]').forEach(btn => {
+btn.addEventListener('click', () => abrirEdicaoUsuario(lista.find(u => String(u.id) === btn.dataset.editar)));
+});
+}
+
+function abrirEdicaoUsuario(u){
+const box = document.getElementById('edit-usuario-' + u.id);
+box.classList.remove('hidden');
+box.innerHTML = `
+<div class="field-group"><label>Usuário</label><input id="edu-usuario-${u.id}" value="${escapeHtml(u.usuario)}"></div>
+<div class="field-group"><label>Nova senha (deixe em branco para manter)</label><input id="edu-senha-${u.id}" placeholder="••••••"></div>
+<label class="checkbox-label"><input type="checkbox" id="edu-admin-${u.id}" ${u.admin ? 'checked' : ''}> Administrador</label>
+<div class="edit-actions">
+<button class="btn-cancelar" data-cancelar>Cancelar</button>
+<button class="btn-salvar" data-salvar>Salvar</button>
+</div>
+<div class="erro" id="edu-erro-${u.id}"></div>`;
+box.querySelector('[data-cancelar]').addEventListener('click', () => { box.classList.add('hidden'); box.innerHTML = ''; });
+box.querySelector('[data-salvar]').addEventListener('click', async () => {
+const novoUsuario = document.getElementById('edu-usuario-' + u.id).value.trim();
+const novaSenha = document.getElementById('edu-senha-' + u.id).value.trim();
+const isAdmin = document.getElementById('edu-admin-' + u.id).checked;
+try{
+await callServer('updateUsuario', STATE.usuario, u.id, novoUsuario, novaSenha, isAdmin);
+await carregarCadastroUsuarios();
+}catch(err){ document.getElementById('edu-erro-' + u.id).textContent = String(err.message || err); }
+});
+}
+
+/* ======================================================================
+RELATÓRIOS (admin)
+====================================================================== */
+document.getElementById('rel-filtrar').addEventListener('click', () => carregarRelatorios());
+document.getElementById('rel-limpar').addEventListener('click', () => {
+document.getElementById('rel-inicio').value = '';
+document.getElementById('rel-fim').value = '';
+carregarRelatorios();
+});
+
+async function carregarRelatorios(){
+const el = document.getElementById('relatorio-conteudo');
+el.innerHTML = '<p style="color:var(--cinza);">Carregando...</p>';
+const inicio = document.getElementById('rel-inicio').value || null;
+const fim = document.getElementById('rel-fim').value || null;
+try{
+const rel = await callServer('getRelatorios', STATE.usuario, inicio, fim);
+renderRelatorios(rel);
+}catch(err){
+el.innerHTML = '<p style="color:var(--vermelho);">' + escapeHtml(err.message||err) + '</p>';
+}
+}
+
+function renderRelatorios(rel){
+const el = document.getElementById('relatorio-conteudo');
+const maiorSaida = Math.max(1, ...rel.rankingSaida.map(r => r.total));
+const maiorEntrada = Math.max(1, ...rel.rankingEntrada.map(r => r.total));
+
+let html = `
+<div class="rel-totais">
+<div class="rel-total-box entrada"><div class="num">${rel.totalEntradas}</div><div class="lbl">itens entraram</div></div>
+<div class="rel-total-box saida"><div class="num">${rel.totalSaidas}</div><div class="lbl">itens saíram</div></div>
+</div>`;
+
+if(rel.ferramentasPendentes.length){
+html += `<div class="rel-secao"><h4 style="color:var(--vermelho);">⚠️ ${rel.ferramentasPendentes.length} ferramenta(s) aguardando devolução</h4>` +
+rel.ferramentasPendentes.map(p => `<div class="func-card"><div class="fnome">${escapeHtml(p.produto)}</div><div class="fdest">Com ${escapeHtml(p.funcionario)} • ${escapeHtml(p.local||'sem local')} • desde ${fmtData(p.data)}</div></div>`).join('') +
+`</div>`;
+}
+
+html += `<div class="rel-secao"><h4>🔴 Produtos que mais saíram</h4>` +
+(rel.rankingSaida.length ? rel.rankingSaida.slice(0,10).map(r => `
+<div class="bar-row">
+<div class="bar-label"><span>${escapeHtml(r.produto)}</span><span>${r.total}</span></div>
+<div class="bar-track"><div class="bar-fill saida" style="width:${(r.total/maiorSaida*100).toFixed(0)}%"></div></div>
+</div>`).join('') : '<p style="color:var(--cinza);">Sem dados no período.</p>') + `</div>`;
+
+html += `<div class="rel-secao"><h4>🟢 Produtos que mais entraram</h4>` +
+(rel.rankingEntrada.length ? rel.rankingEntrada.slice(0,10).map(r => `
+<div class="bar-row">
+<div class="bar-label"><span>${escapeHtml(r.produto)}</span><span>${r.total}</span></div>
+<div class="bar-track"><div class="bar-fill entrada" style="width:${(r.total/maiorEntrada*100).toFixed(0)}%"></div></div>
+</div>`).join('') : '<p style="color:var(--cinza);">Sem dados no período.</p>') + `</div>`;
+
+html += `<div class="rel-secao"><h4>👥 Saídas por funcionário</h4>` +
+(rel.porFuncionario.length ? rel.porFuncionario.map(f => `
+<div class="func-card">
+<div class="fnome">${escapeHtml(f.funcionario)} — ${f.totalItens} itens</div>
+<div class="fdest">${f.itens.slice(0,5).map(it => escapeHtml(it.produto) + ' (' + it.qtd + ')').join(' • ')}</div>
+</div>`).join('') : '<p style="color:var(--cinza);">Sem dados no período.</p>') + `</div>`;
+
+el.innerHTML = html;
+}
+</script>
+</body>
+</html>
