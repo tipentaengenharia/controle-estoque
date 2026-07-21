@@ -198,6 +198,18 @@ header .header-logo{width:34px;}
 #login-screen{min-height:auto;padding:16px 20px;}
 .modal-card{max-height:96vh;}
 }
+
+/* ---------- CAUTELA (IMPRESSÃO) ---------- */
+.print-only{display:none;}
+#cautela-print h2{margin:0;font-size:18px;}
+#cautela-print table{width:100%;border-collapse:collapse;margin-top:14px;}
+#cautela-print th, #cautela-print td{border:1px solid #999;padding:6px 8px;font-size:13px;}
+#cautela-print th{background:#f0f0f0;text-align:left;}
+@media print{
+body *{visibility:hidden;}
+#cautela-print, #cautela-print *{visibility:visible;}
+#cautela-print{display:block;position:absolute;top:0;left:0;width:100%;padding:24px;}
+}
 </style>
 </head>
 <body>
@@ -238,6 +250,8 @@ header .header-logo{width:34px;}
 <button class="hub-tile tile-cadastro" data-view="cadastro-produtos"><span class="tile-icon">📦</span><span>Cadastro de<br>Produtos</span></button>
 <button class="hub-tile tile-relatorios admin-only" data-view="relatorios"><span class="tile-icon">📈</span><span>Relatórios</span></button>
 <button class="hub-tile tile-usuarios admin-only" data-view="cadastro-usuarios"><span class="tile-icon">👥</span><span>Usuários</span></button>
+<button class="hub-tile tile-funcionarios admin-only" data-view="cadastro-funcionarios"><span class="tile-icon">🧑‍🔧</span><span>Funcionários</span></button>
+<button class="hub-tile tile-locais admin-only" data-view="cadastro-locais"><span class="tile-icon">📍</span><span>Locais de Uso</span></button>
 <button class="hub-tile tile-historico" data-view="historico"><span class="tile-icon">🕒</span><span>Ver histórico de movimentações</span></button>
 </div>
 <div id="hub-alert-ferramentas" class="alert-ferramentas hidden"></div>
@@ -300,6 +314,28 @@ header .header-logo{width:34px;}
 <div id="cu-lista"></div>
 </section>
 
+<!-- CADASTRO FUNCIONARIOS -->
+<section id="view-cadastro-funcionarios" class="view">
+<div class="view-header"><button class="btn-voltar" data-back>← Voltar</button><h2>Funcionários</h2></div>
+<div class="cadastro-form">
+<input id="func-nome" placeholder="Nome do funcionário">
+<button id="func-add">+ Adicionar Funcionário</button>
+</div>
+<input id="func-busca" placeholder="🔎 Buscar funcionário...">
+<div id="func-lista"></div>
+</section>
+
+<!-- CADASTRO LOCAIS -->
+<section id="view-cadastro-locais" class="view">
+<div class="view-header"><button class="btn-voltar" data-back>← Voltar</button><h2>Locais de Uso</h2></div>
+<div class="cadastro-form">
+<input id="local-nome" placeholder="Nome do local (obra, setor, cliente...)">
+<button id="local-add">+ Adicionar Local</button>
+</div>
+<input id="local-busca" placeholder="🔎 Buscar local...">
+<div id="local-lista"></div>
+</section>
+
 <!-- RELATORIOS -->
 <section id="view-relatorios" class="view">
 <div class="view-header"><button class="btn-voltar" data-back>← Voltar</button><h2>Relatórios</h2></div>
@@ -322,13 +358,16 @@ header .header-logo{width:34px;}
 </div>
 </div>
 
+<!-- CAUTELA (impressão) -->
+<div id="cautela-print" class="print-only"></div>
+
 </div>
 
 <script>
 /* ======================================================================
 ESTADO GLOBAL
 ====================================================================== */
-let STATE = { usuario:null, admin:false, produtos:[], enderecos:[], funcionarios:[] };
+let STATE = { usuario:null, admin:false, produtos:[], enderecos:[], funcionarios:[], locais:[] };
 
 const API_URL = 'https://script.google.com/macros/s/AKfycbz0wxBWonedLBCX_f5EbjYB8Tn8ht_H0VTHo_UQhqzk5n5hrYSf0xXvb_GX6iLWO55sKg/exec';
 
@@ -386,7 +425,7 @@ btn.disabled = false; btn.textContent = 'Entrar';
 }
 
 document.getElementById('btn-logout').addEventListener('click', () => {
-STATE = { usuario:null, admin:false, produtos:[], enderecos:[], funcionarios:[] };
+STATE = { usuario:null, admin:false, produtos:[], enderecos:[], funcionarios:[], locais:[] };
 document.getElementById('app').classList.add('hidden');
 document.getElementById('login-screen').classList.remove('hidden');
 document.getElementById('login-usuario').value = '';
@@ -398,6 +437,7 @@ const boot = await callServer('getBootstrap');
 STATE.produtos = boot.produtos || [];
 STATE.enderecos = boot.enderecos || [];
 STATE.funcionarios = boot.funcionarios || [];
+STATE.locais = boot.locais || [];
 }
 
 /* ======================================================================
@@ -414,6 +454,8 @@ if(name === 'estoque') carregarEstoque();
 if(name === 'historico') carregarHistorico();
 if(name === 'cadastro-produtos') carregarCadastroProdutos();
 if(name === 'cadastro-usuarios') carregarCadastroUsuarios();
+if(name === 'cadastro-funcionarios') carregarCadastroFuncionarios();
+if(name === 'cadastro-locais') carregarCadastroLocais();
 if(name === 'relatorios') carregarRelatorios();
 }
 
@@ -690,11 +732,11 @@ WIZARD: NOVA SAÍDA
 let wizardSaida = null;
 function iniciarWizardSaida(){
 const steps = [
-{ key:'funcionario', icon:'🧑', label:'Quem leva',
-validate: d => !!(d.funcionario && d.funcionario.trim()),
+{ key:'funcionario', icon:'🧑', label:'Quem/Onde',
+validate: d => !!(d.funcionario && d.funcionario.trim() && d.local && d.local.trim()),
 render: d => `
-<h3>Passo 1 de 4 — Quem está levando?</h3>
-<p class="wizard-hint">Selecione o técnico responsável pela retirada (precisa estar cadastrado).</p>
+<h3>Passo 1 de 4 — Quem está levando e onde vai usar?</h3>
+<p class="wizard-hint">Selecione o técnico responsável pela retirada e o local onde o material será utilizado (ambos precisam estar cadastrados).</p>
 <div class="field-group">
 <label>Funcionário</label>
 <select id="sai-func">
@@ -703,12 +745,22 @@ ${STATE.funcionarios.map(f => `<option value="${escapeHtml(f.NOME)}" ${d.funcion
 </select>
 </div>
 ${STATE.funcionarios.length === 0 ? `<p class="wizard-hint" style="color:var(--vermelho);">Nenhum funcionário cadastrado. Cadastre um funcionário antes de continuar.</p>` : ''}
+<div class="field-group">
+<label>Local de uso</label>
+<select id="sai-local">
+<option value="">Selecione...</option>
+${STATE.locais.map(l => `<option value="${escapeHtml(l.NOME)}" ${d.local === l.NOME ? 'selected' : ''}>${escapeHtml(l.NOME)}</option>`).join('')}
+</select>
+</div>
+${STATE.locais.length === 0 ? `<p class="wizard-hint" style="color:var(--vermelho);">Nenhum local cadastrado. Cadastre um local antes de continuar.</p>` : ''}
 <div class="wizard-actions">
 <button class="btn-primary" data-next>Próximo →</button>
 </div>`,
 wire: (d, el, w) => {
 const sel = el.querySelector('#sai-func');
 sel.addEventListener('change', () => { d.funcionario = sel.value; w.atualizarBotao(); });
+const selLocal = el.querySelector('#sai-local');
+selLocal.addEventListener('change', () => { d.local = selLocal.value; w.atualizarBotao(); });
 }
 },
 { key:'itens', icon:'📦', label:'Produtos',
@@ -825,6 +877,7 @@ validate: () => true,
 render: d => `
 <h3>Passo 4 de 4 — Confirmar</h3>
 <div class="resumo-item"><span>Funcionário</span><span>${escapeHtml(d.funcionario)}</span></div>
+<div class="resumo-item"><span>Local de uso</span><span>${escapeHtml(d.local)}</span></div>
 ${d.itens.map(it => `<div class="resumo-item"><span>${escapeHtml(it.produtoNome)}</span><span>${escapeHtml(it.quantidade)}${it.ehFerramenta ? ' 🔧' : ''}</span></div>`).join('')}
 <div class="resumo-item"><span>Observação</span><span>${escapeHtml(d.observacao || '—')}</span></div>
 <div class="wizard-actions">
@@ -837,7 +890,7 @@ const btn = document.getElementById('sai-confirmar-btn');
 const erroEl = document.getElementById('sai-erro');
 btn.disabled = true; btn.textContent = 'Salvando...';
 try{
-const res = await callServer('addSaida', { funcionario:d.funcionario, itens:d.itens.map(it => ({ produtoId:it.produtoId, produtoNome:it.produtoNome, quantidade:it.quantidade })), observacao:d.observacao, usuario:STATE.usuario });
+const res = await callServer('addSaida', { funcionario:d.funcionario, local:d.local, itens:d.itens.map(it => ({ produtoId:it.produtoId, produtoNome:it.produtoNome, quantidade:it.quantidade })), observacao:d.observacao, usuario:STATE.usuario });
 w.cardEl.innerHTML = `
 <div class="sucesso-box">
 <div class="icone">✅</div>
@@ -845,11 +898,15 @@ w.cardEl.innerHTML = `
 <p>${d.itens.length} produto(s) entregue(s) a ${escapeHtml(d.funcionario)}.</p>
 ${res.anyFerramenta ? `<div class="ferramenta-alerta">🔧 Uma ou mais ferramentas foram marcadas como <b>aguardando devolução</b>. Você poderá registrar a devolução na tela Estoque.</div>` : ''}
 <div class="wizard-actions">
+<button class="btn-secondary" id="sai-imprimir">🖨️ Imprimir Cautela</button>
+</div>
+<div class="wizard-actions">
 <button class="btn-secondary" id="sai-nova">Nova saída</button>
 <button class="btn-primary" id="sai-fim">Voltar ao início</button>
 </div>
 </div>`;
 w.stepperEl.innerHTML = '';
+document.getElementById('sai-imprimir').addEventListener('click', () => imprimirCautela(d));
 document.getElementById('sai-nova').addEventListener('click', () => w.reset());
 document.getElementById('sai-fim').addEventListener('click', () => showView('hub'));
 }catch(err){
@@ -861,6 +918,34 @@ btn.disabled = false; btn.textContent = '✔ Confirmar Saída';
 ];
 wizardSaida = criarWizard('saida-stepper', 'saida-steps', steps);
 wizardSaida.reset();
+}
+
+function imprimirCautela(d){
+const agora = new Date();
+const dataStr = agora.toLocaleDateString('pt-BR') + ' ' + agora.toLocaleTimeString('pt-BR', { hour:'2-digit', minute:'2-digit' });
+const linhasHtml = d.itens.map(it => `
+<tr>
+<td>${escapeHtml(it.produtoNome)}${it.ehFerramenta ? ' 🔧' : ''}</td>
+<td style="text-align:center;">${escapeHtml(it.quantidade)}</td>
+</tr>`).join('');
+document.getElementById('cautela-print').innerHTML = `
+<div style="text-align:center;margin-bottom:18px;">
+<h2>Penta Engenharia</h2>
+<p style="margin:2px 0;">Cautela / Termo de Responsabilidade de Material</p>
+</div>
+<p><b>Funcionário:</b> ${escapeHtml(d.funcionario)}</p>
+<p><b>Local de uso:</b> ${escapeHtml(d.local)}</p>
+<p><b>Data:</b> ${dataStr}</p>
+${d.observacao ? `<p><b>Observação:</b> ${escapeHtml(d.observacao)}</p>` : ''}
+<table>
+<thead><tr><th>Produto</th><th>Quantidade</th></tr></thead>
+<tbody>${linhasHtml}</tbody>
+</table>
+<div style="margin-top:70px;display:flex;justify-content:space-between;gap:20px;">
+<div style="flex:1;border-top:1px solid #000;text-align:center;padding-top:6px;font-size:12.5px;">Assinatura do Funcionário</div>
+<div style="flex:1;border-top:1px solid #000;text-align:center;padding-top:6px;font-size:12.5px;">Responsável Almoxarifado</div>
+</div>`;
+window.print();
 }
 
 /* ======================================================================
@@ -1154,6 +1239,64 @@ await callServer('updateUsuario', STATE.usuario, u.id, novoUsuario, novaSenha, i
 await carregarCadastroUsuarios();
 }catch(err){ document.getElementById('edu-erro-' + u.id).textContent = String(err.message || err); }
 });
+}
+
+/* ======================================================================
+CADASTRO DE FUNCIONÁRIOS (admin)
+====================================================================== */
+async function carregarCadastroFuncionarios(){
+await carregarBootstrap();
+renderCadastroFuncionarios(STATE.funcionarios, document.getElementById('func-busca').value);
+}
+document.getElementById('func-busca').addEventListener('input', (e) => renderCadastroFuncionarios(STATE.funcionarios, e.target.value));
+document.getElementById('func-add').addEventListener('click', async () => {
+const nome = document.getElementById('func-nome').value.trim();
+if(!nome){ alert('Informe o nome do funcionário.'); return; }
+try{
+await callServer('addFuncionario', STATE.usuario, nome);
+document.getElementById('func-nome').value = '';
+await carregarCadastroFuncionarios();
+}catch(err){ alert(String(err.message || err)); }
+});
+
+function renderCadastroFuncionarios(lista, filtro){
+const f = (filtro||'').toLowerCase();
+const filtrada = lista.filter(x => !f || String(x.NOME).toLowerCase().includes(f));
+const el = document.getElementById('func-lista');
+if(!filtrada.length){ el.innerHTML = '<p style="color:var(--cinza);text-align:center;">Nenhum funcionário encontrado.</p>'; return; }
+el.innerHTML = filtrada.map(x => `
+<div class="card-item">
+<div class="nome">${escapeHtml(x.NOME)}</div>
+</div>`).join('');
+}
+
+/* ======================================================================
+CADASTRO DE LOCAIS DE USO (admin)
+====================================================================== */
+async function carregarCadastroLocais(){
+await carregarBootstrap();
+renderCadastroLocais(STATE.locais, document.getElementById('local-busca').value);
+}
+document.getElementById('local-busca').addEventListener('input', (e) => renderCadastroLocais(STATE.locais, e.target.value));
+document.getElementById('local-add').addEventListener('click', async () => {
+const nome = document.getElementById('local-nome').value.trim();
+if(!nome){ alert('Informe o nome do local.'); return; }
+try{
+await callServer('addLocal', STATE.usuario, nome);
+document.getElementById('local-nome').value = '';
+await carregarCadastroLocais();
+}catch(err){ alert(String(err.message || err)); }
+});
+
+function renderCadastroLocais(lista, filtro){
+const f = (filtro||'').toLowerCase();
+const filtrada = lista.filter(x => !f || String(x.NOME).toLowerCase().includes(f));
+const el = document.getElementById('local-lista');
+if(!filtrada.length){ el.innerHTML = '<p style="color:var(--cinza);text-align:center;">Nenhum local encontrado.</p>'; return; }
+el.innerHTML = filtrada.map(x => `
+<div class="card-item">
+<div class="nome">${escapeHtml(x.NOME)}</div>
+</div>`).join('');
 }
 
 /* ======================================================================
