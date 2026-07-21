@@ -3,6 +3,8 @@
 <head>
 <base target="_top">
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1c5f85">
 <title>Controle de Estoque - Penta Engenharia</title>
 <style>
 :root{
@@ -14,15 +16,18 @@
 --branco:#fff;
 --raio:14px;
 }
-*{box-sizing:border-box;}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%;}
+html,body{max-width:100%;overflow-x:hidden;}
 body{margin:0;font-family:'Segoe UI',Roboto,Arial,sans-serif;background:var(--cinza-bg);color:var(--preto);}
 .hidden{display:none !important;}
-button{cursor:pointer;font-family:inherit;}
-input, select, textarea{font-family:inherit;font-size:16px;padding:12px;border:1px solid var(--borda);border-radius:10px;width:100%;background:#fff;}
+button{cursor:pointer;font-family:inherit;touch-action:manipulation;}
+input, select, textarea{font-family:inherit;font-size:16px;padding:12px;border:1px solid var(--borda);border-radius:10px;width:100%;background:#fff;max-width:100%;}
 input:focus, select:focus, textarea:focus{outline:2px solid var(--azul);}
+img{max-width:100%;}
 
 /* ---------- LOGIN ---------- */
-#login-screen{min-height:100vh;display:flex;align-items:center;justify-content:center;background:linear-gradient(160deg,var(--azul-esc),var(--azul));padding:20px;}
+#login-screen{min-height:100vh;min-height:100dvh;display:flex;align-items:center;justify-content:center;background:linear-gradient(160deg,var(--azul-esc),var(--azul));padding:20px;}
 .login-card{background:#fff;border-radius:var(--raio);padding:36px 28px;max-width:360px;width:100%;text-align:center;box-shadow:0 20px 50px rgba(0,0,0,.25);}
 .login-logo{width:120px;margin-bottom:10px;}
 .login-card h1{font-size:20px;margin:6px 0 0;color:var(--preto);}
@@ -33,16 +38,16 @@ input:focus, select:focus, textarea:focus{outline:2px solid var(--azul);}
 .erro{color:var(--vermelho);font-size:13px;margin-top:10px;min-height:16px;}
 
 /* ---------- APP SHELL ---------- */
-header{display:flex;align-items:center;gap:12px;background:#fff;padding:10px 16px;border-bottom:1px solid var(--borda);position:sticky;top:0;z-index:20;}
-header .header-logo{width:42px;height:auto;}
-.header-title{flex:1;display:flex;flex-direction:column;line-height:1.2;}
-.header-title strong{font-size:15px;}
-.header-title span{font-size:11px;color:var(--cinza);}
-.header-user{display:flex;align-items:center;gap:8px;}
-#user-badge{font-size:12px;background:var(--azul-claro);color:var(--azul-esc);padding:5px 10px;border-radius:20px;font-weight:600;}
-#btn-logout{background:none;border:1px solid var(--borda);border-radius:8px;padding:7px 10px;font-size:12px;color:var(--cinza);}
+header{display:flex;align-items:center;gap:10px;background:#fff;padding:10px 16px;padding-top:calc(10px + env(safe-area-inset-top));border-bottom:1px solid var(--borda);position:sticky;top:0;z-index:20;}
+header .header-logo{width:42px;height:auto;flex-shrink:0;}
+.header-title{flex:1;display:flex;flex-direction:column;line-height:1.2;min-width:0;}
+.header-title strong{font-size:15px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.header-title span{font-size:11px;color:var(--cinza);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.header-user{display:flex;align-items:center;gap:8px;flex-shrink:0;}
+#user-badge{font-size:11.5px;background:var(--azul-claro);color:var(--azul-esc);padding:5px 9px;border-radius:20px;font-weight:600;white-space:nowrap;max-width:34vw;overflow:hidden;text-overflow:ellipsis;}
+#btn-logout{background:none;border:1px solid var(--borda);border-radius:8px;padding:7px 10px;font-size:12px;color:var(--cinza);white-space:nowrap;}
 
-.view{padding:16px;max-width:640px;margin:0 auto;padding-bottom:60px;}
+.view{padding:16px;max-width:640px;margin:0 auto;padding-bottom:calc(60px + env(safe-area-inset-bottom));}
 .view:not(.active){display:none;}
 .view-header{display:flex;align-items:center;gap:10px;margin-bottom:14px;}
 .view-header h2{font-size:18px;margin:0;}
@@ -50,7 +55,7 @@ header .header-logo{width:42px;height:auto;}
 
 /* ---------- HUB ---------- */
 .hub-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:8px;}
-.hub-tile{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;background:#fff;border:1px solid var(--borda);border-radius:var(--raio);padding:26px 10px;font-size:14px;font-weight:700;color:var(--preto);box-shadow:0 2px 6px rgba(0,0,0,.04);position:relative;}
+.hub-tile{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;background:#fff;border:1px solid var(--borda);border-radius:var(--raio);padding:26px 10px;font-size:14px;font-weight:700;color:var(--preto);box-shadow:0 2px 6px rgba(0,0,0,.04);position:relative;text-align:center;min-height:44px;}
 .hub-tile:active{transform:scale(.97);}
 .hub-tile .tile-icon{font-size:32px;}
 .tile-entrada{border-color:var(--verde);}
@@ -110,7 +115,7 @@ header .header-logo{width:42px;height:auto;}
 /* ---------- LISTS / CARDS ---------- */
 .card-item{background:#fff;border-radius:12px;padding:13px 14px;margin-bottom:10px;box-shadow:0 1px 4px rgba(0,0,0,.04);border:1px solid var(--borda);}
 .card-item .top-row{display:flex;justify-content:space-between;align-items:center;gap:8px;}
-.card-item .nome{font-weight:700;font-size:14px;}
+.card-item .nome{font-weight:700;font-size:14px;word-break:break-word;}
 .card-item .sub{font-size:12px;color:var(--cinza);margin-top:2px;}
 .badge{font-size:10.5px;font-weight:700;padding:3px 9px;border-radius:20px;white-space:nowrap;}
 .badge-epi{background:#e3f2fd;color:#1565c0;}
@@ -164,12 +169,34 @@ header .header-logo{width:42px;height:auto;}
 
 /* ---------- MODAL ---------- */
 .modal{position:fixed;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:flex-end;justify-content:center;z-index:100;}
-.modal-card{background:#fff;border-radius:18px 18px 0 0;padding:20px;width:100%;max-width:500px;max-height:88vh;overflow:auto;}
+.modal-card{background:#fff;border-radius:18px 18px 0 0;padding:20px;padding-bottom:calc(20px + env(safe-area-inset-bottom));width:100%;max-width:500px;max-height:88vh;overflow:auto;}
 .modal-card h3{margin-top:0;}
 
 @media(min-width:520px){
 .modal{align-items:center;}
 .modal-card{border-radius:16px;}
+}
+
+/* ---------- TELAS PEQUENAS (celulares estreitos, <=360px) ---------- */
+@media(max-width:360px){
+.view{padding:12px;padding-bottom:calc(56px + env(safe-area-inset-bottom));}
+.hub-grid{gap:8px;}
+.hub-tile{padding:18px 6px;font-size:12.5px;gap:6px;}
+.hub-tile .tile-icon{font-size:26px;}
+.tile-historico{padding:12px;}
+.login-card{padding:28px 18px;}
+header{padding:8px 12px;padding-top:calc(8px + env(safe-area-inset-top));gap:8px;}
+header .header-logo{width:34px;}
+.header-title strong{font-size:13.5px;}
+.wizard-card{padding:14px;}
+.qtd-row button{width:42px;height:42px;font-size:19px;}
+.step-dot .lbl{font-size:8.5px;max-width:48px;}
+}
+
+/* ---------- ORIENTAÇÃO PAISAGEM COM POUCA ALTURA ---------- */
+@media(max-height:420px) and (orientation:landscape){
+#login-screen{min-height:auto;padding:16px 20px;}
+.modal-card{max-height:96vh;}
 }
 </style>
 </head>
