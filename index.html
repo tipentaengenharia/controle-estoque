@@ -131,12 +131,16 @@ header .header-logo{width:42px;height:auto;flex-shrink:0;}
 .pendente-card .sub{color:#8a2020;}
 .btn-devolver{margin-top:8px;background:var(--vermelho);color:#fff;border:none;padding:9px 14px;border-radius:8px;font-size:12.5px;font-weight:700;}
 .btn-editar{background:none;border:1px solid var(--borda);border-radius:8px;padding:6px 11px;font-size:12px;color:var(--azul-esc);}
+.card-actions{display:flex;gap:8px;flex-shrink:0;}
+.btn-excluir{background:none;border:1px solid var(--vermelho);border-radius:8px;padding:6px 11px;font-size:12px;color:var(--vermelho);}
 .edit-box{margin-top:10px;border-top:1px dashed var(--borda);padding-top:10px;}
 .edit-box .row2{margin-bottom:8px;}
+.edit-box .confirm-msg{font-size:13px;color:var(--preto);margin:0 0 4px;}
 .edit-actions{display:flex;gap:8px;margin-top:6px;}
 .edit-actions button{flex:1;padding:9px;border-radius:8px;font-size:12.5px;font-weight:700;}
 .btn-salvar{background:var(--azul);color:#fff;border:none;}
 .btn-cancelar{background:#fff;border:1px solid var(--borda);color:var(--cinza);}
+.btn-excluir-confirm{background:var(--vermelho);color:#fff;border:none;}
 
 .cadastro-form{background:#fff;border-radius:var(--raio);padding:16px;margin-bottom:16px;box-shadow:0 1px 4px rgba(0,0,0,.04);}
 .cadastro-form > *{margin-bottom:10px;}
@@ -1137,12 +1141,37 @@ el.innerHTML = filtrada.map(p => `
 <div class="nome">${escapeHtml(p.PRODUTO)}</div>
 <div class="sub">${badgeLinha(p.LINHA)}</div>
 </div>
+<div class="card-actions">
 <button class="btn-editar" data-editar="${p.ID}">Editar</button>
+<button class="btn-excluir" data-excluir="${p.ID}">Excluir</button>
+</div>
 </div>
 <div class="edit-box hidden" id="edit-produto-${p.ID}"></div>
 </div>`).join('');
 el.querySelectorAll('[data-editar]').forEach(btn => {
 btn.addEventListener('click', () => abrirEdicaoProduto(lista.find(p => String(p.ID) === btn.dataset.editar)));
+});
+el.querySelectorAll('[data-excluir]').forEach(btn => {
+btn.addEventListener('click', () => abrirExclusaoProduto(lista.find(p => String(p.ID) === btn.dataset.excluir)));
+});
+}
+
+function abrirExclusaoProduto(p){
+const box = document.getElementById('edit-produto-' + p.ID);
+box.classList.remove('hidden');
+box.innerHTML = `
+<p class="confirm-msg">Excluir o produto <b>${escapeHtml(p.PRODUTO)}</b>? Esta ação não pode ser desfeita.</p>
+<div class="edit-actions">
+<button class="btn-cancelar" data-cancelar>Cancelar</button>
+<button class="btn-excluir-confirm" data-confirmar>Sim, excluir</button>
+</div>
+<div class="erro" id="edp-erro-${p.ID}"></div>`;
+box.querySelector('[data-cancelar]').addEventListener('click', () => { box.classList.add('hidden'); box.innerHTML = ''; });
+box.querySelector('[data-confirmar]').addEventListener('click', async () => {
+try{
+await callServer('deleteProduto', STATE.usuario, p.ID);
+await carregarCadastroProdutos();
+}catch(err){ document.getElementById('edp-erro-' + p.ID).textContent = String(err.message || err); }
 });
 }
 
@@ -1265,9 +1294,62 @@ const filtrada = lista.filter(x => !f || String(x.NOME).toLowerCase().includes(f
 const el = document.getElementById('func-lista');
 if(!filtrada.length){ el.innerHTML = '<p style="color:var(--cinza);text-align:center;">Nenhum funcionário encontrado.</p>'; return; }
 el.innerHTML = filtrada.map(x => `
-<div class="card-item">
+<div class="card-item" data-funcionario-card="${x.ID}">
+<div class="top-row">
 <div class="nome">${escapeHtml(x.NOME)}</div>
+<div class="card-actions">
+<button class="btn-editar" data-editar="${x.ID}">Editar</button>
+<button class="btn-excluir" data-excluir="${x.ID}">Excluir</button>
+</div>
+</div>
+<div class="edit-box hidden" id="edit-funcionario-${x.ID}"></div>
 </div>`).join('');
+el.querySelectorAll('[data-editar]').forEach(btn => {
+btn.addEventListener('click', () => abrirEdicaoFuncionario(lista.find(x => String(x.ID) === btn.dataset.editar)));
+});
+el.querySelectorAll('[data-excluir]').forEach(btn => {
+btn.addEventListener('click', () => abrirExclusaoFuncionario(lista.find(x => String(x.ID) === btn.dataset.excluir)));
+});
+}
+
+function abrirEdicaoFuncionario(x){
+const box = document.getElementById('edit-funcionario-' + x.ID);
+box.classList.remove('hidden');
+box.innerHTML = `
+<input id="edf-nome-${x.ID}" value="${escapeHtml(x.NOME)}">
+<div class="edit-actions">
+<button class="btn-cancelar" data-cancelar>Cancelar</button>
+<button class="btn-salvar" data-salvar>Salvar</button>
+</div>
+<div class="erro" id="edf-erro-${x.ID}"></div>`;
+box.querySelector('[data-cancelar]').addEventListener('click', () => { box.classList.add('hidden'); box.innerHTML = ''; });
+box.querySelector('[data-salvar]').addEventListener('click', async () => {
+const novoNome = document.getElementById('edf-nome-' + x.ID).value.trim();
+if(!novoNome){ document.getElementById('edf-erro-' + x.ID).textContent = 'Informe o nome do funcionário.'; return; }
+try{
+await callServer('updateFuncionario', STATE.usuario, x.ID, novoNome);
+await carregarCadastroFuncionarios();
+}catch(err){ document.getElementById('edf-erro-' + x.ID).textContent = String(err.message || err); }
+});
+}
+
+function abrirExclusaoFuncionario(x){
+const box = document.getElementById('edit-funcionario-' + x.ID);
+box.classList.remove('hidden');
+box.innerHTML = `
+<p class="confirm-msg">Excluir o funcionário <b>${escapeHtml(x.NOME)}</b>? Esta ação não pode ser desfeita.</p>
+<div class="edit-actions">
+<button class="btn-cancelar" data-cancelar>Cancelar</button>
+<button class="btn-excluir-confirm" data-confirmar>Sim, excluir</button>
+</div>
+<div class="erro" id="edf-erro-${x.ID}"></div>`;
+box.querySelector('[data-cancelar]').addEventListener('click', () => { box.classList.add('hidden'); box.innerHTML = ''; });
+box.querySelector('[data-confirmar]').addEventListener('click', async () => {
+try{
+await callServer('deleteFuncionario', STATE.usuario, x.ID);
+await carregarCadastroFuncionarios();
+}catch(err){ document.getElementById('edf-erro-' + x.ID).textContent = String(err.message || err); }
+});
 }
 
 /* ======================================================================
